@@ -295,12 +295,25 @@
     display: flex; align-items: center; justify-content: center;
     gap: 8px;
   }
+  .btn--tap.tapped {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+    box-shadow: 0 0 20px var(--accent-glow);
+  }
   .tap-count {
     font-size: 0.75rem;
-    color: var(--text-tertiary);
-    min-width: 20px;
+    color: var(--text-secondary);
     text-align: center;
-    transition: color 0.4s;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    overflow: hidden;
+    white-space: nowrap;
+    max-width: 30px;
+    transition: max-width 0.25s cubic-bezier(0.16,1,0.3,1), color 0.4s;
+  }
+  .tap-count:empty {
+    max-width: 0;
   }
 
   /* ========== Settings Row ========== */
@@ -1014,6 +1027,11 @@ initDropdown(dropdownSubdiv, (val) => {
 btnTap.addEventListener('click', () => {
   const now = performance.now();
 
+  // Visual feedback
+  btnTap.classList.add('tapped');
+  clearTimeout(btnTap._flashTimeout);
+  btnTap._flashTimeout = setTimeout(() => btnTap.classList.remove('tapped'), 120);
+
   // Remove taps outside the window
   tapTimes = tapTimes.filter(t => now - t < TAP_WINDOW);
 
@@ -1064,16 +1082,20 @@ function buildBeatDots() {
 // ============ Tick Marks (SVG) ============
 function buildTickMarks() {
   const centerX = 140, centerY = 140;
-  const radius = 120;
-  const totalTicks = 24; // 2 ticks per beat for a nice look
+  const radius = 115;
+  const arcStart = -140; // leftmost angle (degrees)
+  const arcEnd = -40;    // rightmost angle (degrees)
+  const arcSpan = arcEnd - arcStart; // 100°
 
   // Remove existing ticks
   faceSvg.querySelectorAll('.tick-mark').forEach(t => t.remove());
 
+  // Draw scale arc ticks — odd counts = major ticks at positions divisible by 2
+  const totalTicks = 21;
   for (let i = 0; i < totalTicks; i++) {
-    const angle = (i / totalTicks) * 360 - 90;
+    const angle = arcStart + (i / (totalTicks - 1)) * arcSpan;
     const rad = angle * Math.PI / 180;
-    const isMajor = i % 3 === 0;
+    const isMajor = i % 2 === 0;
     const innerR = isMajor ? radius - 18 : radius - 10;
     const outerR = radius;
 
@@ -1087,15 +1109,31 @@ function buildTickMarks() {
     line.setAttribute('y1', y1);
     line.setAttribute('x2', x2);
     line.setAttribute('y2', y2);
-    line.setAttribute('stroke', isMajor ? 'var(--tick-inactive)' : 'var(--tick-inactive)');
+    line.setAttribute('stroke', 'var(--tick-inactive)');
     line.setAttribute('stroke-width', isMajor ? '2' : '1');
     line.setAttribute('stroke-linecap', 'round');
     line.setAttribute('class', 'tick-mark');
-    line.style.opacity = isMajor ? '0.6' : '0.3';
+    line.style.opacity = isMajor ? '0.55' : '0.25';
 
-    // Insert before needle group
     faceSvg.insertBefore(line, needleGroup);
   }
+
+  // Draw a subtle arc line connecting the ticks
+  const arcPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  const startRad = arcStart * Math.PI / 180;
+  const endRad = arcEnd * Math.PI / 180;
+  const sx = centerX + radius * Math.cos(startRad);
+  const sy = centerY + radius * Math.sin(startRad);
+  const ex = centerX + radius * Math.cos(endRad);
+  const ey = centerY + radius * Math.sin(endRad);
+  arcPath.setAttribute('d', `M ${sx} ${sy} A ${radius} ${radius} 0 0 1 ${ex} ${ey}`);
+  arcPath.setAttribute('fill', 'none');
+  arcPath.setAttribute('stroke', 'var(--tick-inactive)');
+  arcPath.setAttribute('stroke-width', '1.5');
+  arcPath.setAttribute('stroke-linecap', 'round');
+  arcPath.style.opacity = '0.15';
+  arcPath.setAttribute('class', 'tick-mark');
+  faceSvg.insertBefore(arcPath, needleGroup);
 }
 
 // ============ Init ============
