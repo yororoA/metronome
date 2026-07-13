@@ -589,12 +589,19 @@ const themeToggle = document.getElementById('themeToggle');
 const themeIcon = document.getElementById('themeIcon');
 
 // ============ State ============
-let bpm = 120;
+let bpm = parseInt(localStorage.getItem('metronome-bpm')) || 120;
 let isPlaying = false;
 let currentBeat = 0;
-let beatsPerMeasure = 4;
-let subdivision = 1;
-let volume = 0.7;
+let beatsPerMeasure = parseInt(localStorage.getItem('metronome-beats')) || 4;
+let subdivision = parseInt(localStorage.getItem('metronome-subdiv')) || 1;
+let volume = parseFloat(localStorage.getItem('metronome-volume')) || 0.7;
+
+function saveSettings() {
+  localStorage.setItem('metronome-bpm', bpm);
+  localStorage.setItem('metronome-beats', beatsPerMeasure);
+  localStorage.setItem('metronome-subdiv', subdivision);
+  localStorage.setItem('metronome-volume', volume);
+}
 
 // Tap tempo state
 let tapTimes = [];
@@ -815,6 +822,7 @@ function setBPM(value) {
   bpm = Math.max(20, Math.min(240, value));
   bpmSlider.value = bpm;
   bpmValue.textContent = bpm;
+  saveSettings();
 
   if (isPlaying) {
     // Reset timing
@@ -1005,6 +1013,7 @@ function closeAllDropdowns() {
 // ============ Dropdown: Time Signature ============
 const timeSigDropdown = initDropdown(dropdownTimeSig, (val) => {
   beatsPerMeasure = parseInt(val);
+  saveSettings();
   currentBeat = 0;
   buildBeatDots();
   updateBeatDots(-1);
@@ -1015,8 +1024,9 @@ const timeSigDropdown = initDropdown(dropdownTimeSig, (val) => {
 });
 
 // ============ Dropdown: Subdivision ============
-initDropdown(dropdownSubdiv, (val) => {
+const subdivDropdown = initDropdown(dropdownSubdiv, (val) => {
   subdivision = parseInt(val);
+  saveSettings();
   if (isPlaying) {
     stopScheduler();
     startScheduler();
@@ -1067,6 +1077,7 @@ btnTap.addEventListener('click', () => {
 // ============ Volume ============
 volumeSlider.addEventListener('input', () => {
   volume = parseInt(volumeSlider.value) / 100;
+  saveSettings();
 });
 
 // ============ Beat Dots ============
@@ -1139,6 +1150,14 @@ function buildTickMarks() {
 // ============ Init ============
 function init() {
   buildTickMarks();
+
+  // Apply saved settings to UI
+  bpmSlider.value = bpm;
+  bpmValue.textContent = bpm;
+  volumeSlider.value = Math.round(volume * 100);
+  timeSigDropdown.setValue(beatsPerMeasure);
+  subdivDropdown.setValue(subdivision);
+
   buildBeatDots();
   updateBeatDots(-1);
 
