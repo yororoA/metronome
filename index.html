@@ -69,11 +69,11 @@
     font-family: 'SF Pro Display', 'Segoe UI', system-ui, -apple-system, sans-serif;
     background: var(--bg-primary);
     color: var(--text-primary);
-    min-height: 100dvh;
+    height: 100dvh;
     display: flex;
     align-items: center;
     justify-content: center;
-    overflow-x: hidden;
+    overflow: hidden;
     transition: background 0.4s ease, color 0.4s ease;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -319,35 +319,87 @@
     color: var(--text-tertiary);
     transition: color 0.4s;
   }
-  .setting-select {
-    height: 44px;
+  /* ========== Custom Dropdown ========== */
+  .dropdown {
+    position: relative;
+    user-select: none;
+  }
+  .dropdown-trigger {
+    width: 100%; height: 48px;
     border-radius: 14px;
     border: 1px solid var(--border-medium);
     background: var(--btn-bg);
     color: var(--text-primary);
-    padding: 0 12px;
+    padding: 0 40px 0 16px;
     font-size: 0.9rem;
+    font-weight: 500;
     font-family: inherit;
     cursor: pointer;
-    transition: all 0.25s cubic-bezier(0.16,1,0.3,1);
-    appearance: none;
-    -webkit-appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394949d' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 12px center;
-    padding-right: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: border-color 0.25s cubic-bezier(0.16,1,0.3,1),
+                background-color 0.25s cubic-bezier(0.16,1,0.3,1),
+                box-shadow 0.25s cubic-bezier(0.16,1,0.3,1);
   }
-  .setting-select:hover {
+  .dropdown-trigger:hover {
     background-color: var(--btn-hover-bg);
+    border-color: var(--text-tertiary);
   }
-  .setting-select:focus {
-    outline: none;
+  .dropdown.open .dropdown-trigger {
     border-color: var(--accent);
     box-shadow: 0 0 0 3px var(--accent-glow);
   }
-  .setting-select option {
+  .dropdown-arrow {
+    color: var(--text-tertiary);
+    flex-shrink: 0;
+    transition: transform 0.25s cubic-bezier(0.16,1,0.3,1);
+  }
+  .dropdown.open .dropdown-arrow {
+    transform: rotate(180deg);
+  }
+
+  .dropdown-menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0; right: 0;
+    z-index: 50;
     background: var(--bg-secondary);
+    border: 1px solid var(--border-medium);
+    border-radius: 14px;
+    padding: 6px;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-8px) scale(0.96);
+    transition: opacity 0.2s cubic-bezier(0.16,1,0.3,1),
+                transform 0.2s cubic-bezier(0.16,1,0.3,1),
+                visibility 0.2s;
+    box-shadow: 0 16px 40px rgba(0,0,0,0.4);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+  .dropdown.open .dropdown-menu {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0) scale(1);
+  }
+
+  .dropdown-option {
+    padding: 10px 12px;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .dropdown-option:hover {
+    background: var(--btn-bg);
     color: var(--text-primary);
+  }
+  .dropdown-option.selected {
+    color: var(--accent);
+    background: var(--accent-glow);
   }
 
   /* ========== Volume ========== */
@@ -371,7 +423,7 @@
     .btn { width: 38px; height: 38px; border-radius: 12px; }
     .btn--tap { height: 42px; border-radius: 14px; font-size: 0.8rem; }
     .settings-row { flex-direction: column; }
-    .setting-select { height: 40px; border-radius: 12px; }
+    .dropdown-trigger { height: 44px; border-radius: 12px; }
   }
 
   /* ========== Reduced Motion ========== */
@@ -379,9 +431,9 @@
     .beat-dot { transition: none !important; }
   }
 
-  /* ========== Select Light Theme Fix ========== */
-  [data-theme="light"] .setting-select {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b6b75' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  /* ========== Dropdown Light Theme ========== */
+  [data-theme="light"] .dropdown-menu {
+    box-shadow: 0 16px 40px rgba(0,0,0,0.12);
   }
 </style>
 </head>
@@ -446,24 +498,36 @@
       <!-- Settings -->
       <div class="settings-row">
         <div class="setting-group">
-          <label class="setting-label" for="timeSigBeats">拍号</label>
-          <select class="setting-select" id="timeSigBeats">
-            <option value="2">2/4</option>
-            <option value="3">3/4</option>
-            <option value="4" selected>4/4</option>
-            <option value="5">5/4</option>
-            <option value="6">6/8</option>
-            <option value="7">7/8</option>
-          </select>
+          <label class="setting-label">拍号</label>
+          <div class="dropdown" id="dropdownTimeSig">
+            <button class="dropdown-trigger" type="button">
+              <span class="dropdown-value">4/4</span>
+              <svg class="dropdown-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="dropdown-menu">
+              <div class="dropdown-option selected" data-value="4">4/4</div>
+              <div class="dropdown-option" data-value="2">2/4</div>
+              <div class="dropdown-option" data-value="3">3/4</div>
+              <div class="dropdown-option" data-value="5">5/4</div>
+              <div class="dropdown-option" data-value="6">6/8</div>
+              <div class="dropdown-option" data-value="7">7/8</div>
+            </div>
+          </div>
         </div>
         <div class="setting-group">
-          <label class="setting-label" for="subdivision">细分</label>
-          <select class="setting-select" id="subdivision">
-            <option value="1" selected>四分音符</option>
-            <option value="2">八分音符</option>
-            <option value="3">三连音</option>
-            <option value="4">十六分音符</option>
-          </select>
+          <label class="setting-label">细分</label>
+          <div class="dropdown" id="dropdownSubdiv">
+            <button class="dropdown-trigger" type="button">
+              <span class="dropdown-value">四分音符</span>
+              <svg class="dropdown-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="dropdown-menu">
+              <div class="dropdown-option selected" data-value="1">四分音符</div>
+              <div class="dropdown-option" data-value="2">八分音符</div>
+              <div class="dropdown-option" data-value="3">三连音</div>
+              <div class="dropdown-option" data-value="4">十六分音符</div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -489,8 +553,8 @@ const btnPlus = document.getElementById('btnPlus');
 const btnTap = document.getElementById('btnTap');
 const tapCount = document.getElementById('tapCount');
 const beatIndicators = document.getElementById('beatIndicators');
-const timeSigSelect = document.getElementById('timeSigBeats');
-const subdivisionSelect = document.getElementById('subdivision');
+const dropdownTimeSig = document.getElementById('dropdownTimeSig');
+const dropdownSubdiv = document.getElementById('dropdownSubdiv');
 const volumeSlider = document.getElementById('volumeSlider');
 const needleGroup = document.getElementById('needleGroup');
 const faceSvg = document.getElementById('faceSvg');
@@ -742,7 +806,7 @@ btnPlus.addEventListener('click', () => setBPM(bpm + 1));
 
 // Add keyboard shortcuts
 document.addEventListener('keydown', (e) => {
-  if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+  if (e.target.tagName === 'INPUT' || e.target.closest('.dropdown')) return;
   switch (e.code) {
     case 'Space':
       e.preventDefault();
@@ -765,6 +829,114 @@ document.addEventListener('keydown', (e) => {
       e.preventDefault();
       setBPM(bpm - 5);
       break;
+  }
+});
+
+// ============ Custom Dropdown ============
+function initDropdown(dropdownEl, onChange) {
+  const trigger = dropdownEl.querySelector('.dropdown-trigger');
+  const valueEl = dropdownEl.querySelector('.dropdown-value');
+  const menu = dropdownEl.querySelector('.dropdown-menu');
+  const options = dropdownEl.querySelectorAll('.dropdown-option');
+
+  // Toggle open/close
+  trigger.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const wasOpen = dropdownEl.classList.contains('open');
+    closeAllDropdowns();
+    if (!wasOpen) {
+      dropdownEl.classList.add('open');
+    }
+  });
+
+  // Option click
+  options.forEach(opt => {
+    opt.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const val = opt.dataset.value;
+      const label = opt.textContent;
+      // Update UI
+      options.forEach(o => o.classList.remove('selected'));
+      opt.classList.add('selected');
+      valueEl.textContent = label;
+      dropdownEl.classList.remove('open');
+      // Callback
+      if (onChange) onChange(val, label);
+    });
+  });
+
+  // Keyboard navigation
+  trigger.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      trigger.click();
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      if (!dropdownEl.classList.contains('open')) {
+        dropdownEl.classList.add('open');
+      }
+      const sel = menu.querySelector('.dropdown-option.selected') || options[0];
+      const next = sel.nextElementSibling || options[0];
+      options.forEach(o => o.classList.remove('selected'));
+      next.classList.add('selected');
+      next.scrollIntoView({ block: 'nearest' });
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      const sel = menu.querySelector('.dropdown-option.selected') || options[0];
+      const prev = sel.previousElementSibling || options[options.length - 1];
+      options.forEach(o => o.classList.remove('selected'));
+      prev.classList.add('selected');
+      prev.scrollIntoView({ block: 'nearest' });
+    } else if (e.key === 'Escape') {
+      dropdownEl.classList.remove('open');
+      trigger.focus();
+    }
+  });
+
+  // Return public API
+  return {
+    setValue(val) {
+      const opt = menu.querySelector(`.dropdown-option[data-value="${val}"]`);
+      if (opt) {
+        options.forEach(o => o.classList.remove('selected'));
+        opt.classList.add('selected');
+        valueEl.textContent = opt.textContent;
+      }
+    },
+    getValue() {
+      const sel = menu.querySelector('.dropdown-option.selected');
+      return sel ? sel.dataset.value : null;
+    },
+  };
+}
+
+function closeAllDropdowns() {
+  document.querySelectorAll('.dropdown.open').forEach(d => d.classList.remove('open'));
+}
+
+// Global click to close
+document.addEventListener('click', () => {
+  closeAllDropdowns();
+});
+
+// ============ Dropdown: Time Signature ============
+const timeSigDropdown = initDropdown(dropdownTimeSig, (val) => {
+  beatsPerMeasure = parseInt(val);
+  currentBeat = 0;
+  buildBeatDots();
+  updateBeatDots(-1);
+  if (isPlaying) {
+    stopScheduler();
+    startScheduler();
+  }
+});
+
+// ============ Dropdown: Subdivision ============
+initDropdown(dropdownSubdiv, (val) => {
+  subdivision = parseInt(val);
+  if (isPlaying) {
+    stopScheduler();
+    startScheduler();
   }
 });
 
@@ -802,32 +974,6 @@ btnTap.addEventListener('click', () => {
     tapTimes = [];
     tapCount.textContent = '';
   }, TAP_WINDOW);
-});
-
-// ============ Time Signature ============
-function updateTimeSignature() {
-  const value = timeSigSelect.value;
-  // Preset mappings: value -> beats per measure
-  beatsPerMeasure = parseInt(value);
-  currentBeat = 0;
-  buildBeatDots();
-  updateBeatDots(-1);
-
-  if (isPlaying) {
-    stopScheduler();
-    startScheduler();
-  }
-}
-
-timeSigSelect.addEventListener('change', updateTimeSignature);
-
-// ============ Subdivision ============
-subdivisionSelect.addEventListener('change', () => {
-  subdivision = parseInt(subdivisionSelect.value);
-  if (isPlaying) {
-    stopScheduler();
-    startScheduler();
-  }
 });
 
 // ============ Volume ============
