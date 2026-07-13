@@ -70,13 +70,13 @@
     background: var(--bg-primary);
     color: var(--text-primary);
     height: 100dvh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
     overflow: hidden;
     transition: background 0.4s ease, color 0.4s ease;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
   /* ========== Background Ambient ========== */
@@ -359,39 +359,50 @@
     transform: rotate(180deg);
   }
 
-  .dropdown-menu {
-    position: absolute;
-    top: calc(100% + 6px);
-    left: 0; right: 0;
-    z-index: 50;
-    background: var(--bg-secondary);
-    border: 1px solid var(--border-medium);
-    border-radius: 14px;
-    padding: 6px;
+  /* ========== Dropdown Overlay ========== */
+  .dropdown-overlay {
+    position: fixed; inset: 0;
+    z-index: 999;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
     opacity: 0;
     visibility: hidden;
-    transform: translateY(-8px) scale(0.96);
-    transition: opacity 0.2s cubic-bezier(0.16,1,0.3,1),
-                transform 0.2s cubic-bezier(0.16,1,0.3,1),
-                visibility 0.2s;
-    box-shadow: 0 16px 40px rgba(0,0,0,0.4);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    transition: opacity 0.25s ease, visibility 0.25s ease;
   }
-  .dropdown.open .dropdown-menu {
+  .dropdown-overlay.open {
     opacity: 1;
     visibility: visible;
-    transform: translateY(0) scale(1);
+  }
+
+  /* ========== Dropdown Popover ========== */
+  .dropdown-popover {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-medium);
+    border-radius: 18px;
+    padding: 8px;
+    min-width: 220px;
+    max-width: 320px;
+    width: 100%;
+    transform: scale(0.92) translateY(8px);
+    transition: transform 0.25s cubic-bezier(0.16,1,0.3,1);
+    box-shadow: 0 24px 80px rgba(0,0,0,0.6);
+  }
+  .dropdown-overlay.open .dropdown-popover {
+    transform: scale(1) translateY(0);
   }
 
   .dropdown-option {
-    padding: 10px 12px;
-    border-radius: 10px;
-    font-size: 0.9rem;
+    padding: 13px 16px;
+    border-radius: 12px;
+    font-size: 0.95rem;
     font-weight: 500;
     color: var(--text-secondary);
     cursor: pointer;
     transition: all 0.15s ease;
+    text-align: center;
   }
   .dropdown-option:hover {
     background: var(--btn-bg);
@@ -431,9 +442,12 @@
     .beat-dot { transition: none !important; }
   }
 
-  /* ========== Dropdown Light Theme ========== */
-  [data-theme="light"] .dropdown-menu {
-    box-shadow: 0 16px 40px rgba(0,0,0,0.12);
+  /* ========== Popover Light Theme ========== */
+  [data-theme="light"] .dropdown-popover {
+    box-shadow: 0 24px 80px rgba(0,0,0,0.15);
+  }
+  [data-theme="light"] .dropdown-overlay {
+    background: rgba(0,0,0,0.25);
   }
 </style>
 </head>
@@ -832,79 +846,139 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
-// ============ Custom Dropdown ============
+// ============ Custom Dropdown (Popover) ============
 function initDropdown(dropdownEl, onChange) {
   const trigger = dropdownEl.querySelector('.dropdown-trigger');
   const valueEl = dropdownEl.querySelector('.dropdown-value');
-  const menu = dropdownEl.querySelector('.dropdown-menu');
   const options = dropdownEl.querySelectorAll('.dropdown-option');
 
-  // Toggle open/close
-  trigger.addEventListener('click', (e) => {
-    e.stopPropagation();
-    const wasOpen = dropdownEl.classList.contains('open');
+  // Build overlay + popover
+   const overlay = document.createElement('div');
+   overlay.className = 'dropdown-overlay';
+   overlay.tabIndex = -1;
+   const popover = document.createElement('div');
+  popover.className = 'dropdown-popover';
+  overlay.appendChild(popover);
+  document.body.appendChild(overlay);
+
+  // Move options into popover and remove originals
+   const optionEls = [...options].map(opt => {
+     const clone = opt.cloneNode(true);
+     popover.appendChild(clone);
+     return clone;
+   });
+   // Remove original option containers from DOM
+   dropdownEl.querySelectorAll('.dropdown-menu').forEach(m => m.remove());
+
+  // Helper: get selected option element in popover
+  function getSelectedOpt() {
+    return popover.querySelector('.dropdown-option.selected');
+  }
+
+  // Open
+  function open() {
     closeAllDropdowns();
-    if (!wasOpen) {
-      dropdownEl.classList.add('open');
-    }
+    const sel = popover.querySelector('.dropdown-option.selected');
+    if (sel) sel.scrollIntoView({ block: 'center' });
+    dropdownEl.classList.add('open');
+    overlay.classList.add('open');
+  }
+
+  // Close
+  function close() {
+    dropdownEl.classList.remove('open');
+    overlay.classList.remove('open');
+  }
+
+  // Trigger click
+   trigger.addEventListener('click', (e) => {
+     e.stopPropagation();
+     if (dropdownEl.classList.contains('open')) {
+       close();
+     } else {
+       open();
+       overlay.focus();
+     }
+   });
+
+  // Option click in popover
+  popover.addEventListener('click', (e) => {
+    const opt = e.target.closest('.dropdown-option');
+    if (!opt) return;
+    e.stopPropagation();
+    const val = opt.dataset.value;
+    const label = opt.textContent;
+    // Update popover selection
+    popover.querySelectorAll('.dropdown-option').forEach(o => o.classList.remove('selected'));
+    opt.classList.add('selected');
+    // Update trigger
+    valueEl.textContent = label;
+    close();
+    if (onChange) onChange(val, label);
   });
 
-  // Option click
-  options.forEach(opt => {
-    opt.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const val = opt.dataset.value;
-      const label = opt.textContent;
-      // Update UI
-      options.forEach(o => o.classList.remove('selected'));
-      opt.classList.add('selected');
-      valueEl.textContent = label;
-      dropdownEl.classList.remove('open');
-      // Callback
-      if (onChange) onChange(val, label);
-    });
+  // Click overlay background to close
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) close();
   });
 
-  // Keyboard navigation
+  // Keyboard
   trigger.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
-      trigger.click();
-    } else if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      if (!dropdownEl.classList.contains('open')) {
-        dropdownEl.classList.add('open');
-      }
-      const sel = menu.querySelector('.dropdown-option.selected') || options[0];
-      const next = sel.nextElementSibling || options[0];
-      options.forEach(o => o.classList.remove('selected'));
-      next.classList.add('selected');
-      next.scrollIntoView({ block: 'nearest' });
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      const sel = menu.querySelector('.dropdown-option.selected') || options[0];
-      const prev = sel.previousElementSibling || options[options.length - 1];
-      options.forEach(o => o.classList.remove('selected'));
-      prev.classList.add('selected');
-      prev.scrollIntoView({ block: 'nearest' });
+      open();
     } else if (e.key === 'Escape') {
-      dropdownEl.classList.remove('open');
+      close();
       trigger.focus();
     }
   });
 
-  // Return public API
+  overlay.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      const sel = getSelectedOpt() || popover.querySelector('.dropdown-option');
+      const next = sel.nextElementSibling || popover.querySelector('.dropdown-option');
+      popover.querySelectorAll('.dropdown-option').forEach(o => o.classList.remove('selected'));
+      next.classList.add('selected');
+      next.scrollIntoView({ block: 'center' });
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      const opts = [...popover.querySelectorAll('.dropdown-option')];
+      const sel = getSelectedOpt() || opts[0];
+      const idx = opts.indexOf(sel);
+      const prev = opts[idx - 1] || opts[opts.length - 1];
+      popover.querySelectorAll('.dropdown-option').forEach(o => o.classList.remove('selected'));
+      prev.classList.add('selected');
+      prev.scrollIntoView({ block: 'center' });
+    } else if (e.key === 'Escape') {
+      close();
+      trigger.focus();
+    } else if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      const sel = getSelectedOpt();
+      if (sel) sel.click();
+    }
+  });
+
+  // Focus overlay when opened (for keyboard nav)
+  const observer = new MutationObserver(() => {
+    if (overlay.classList.contains('open')) {
+      overlay.focus();
+    }
+  });
+  observer.observe(overlay, { attributes: true, attributeFilter: ['class'] });
+
   return {
     setValue(val) {
-      const opt = menu.querySelector(`.dropdown-option[data-value="${val}"]`);
+      const opt = popover.querySelector(`.dropdown-option[data-value="${val}"]`);
       if (opt) {
-        options.forEach(o => o.classList.remove('selected'));
+        popover.querySelectorAll('.dropdown-option').forEach(o => o.classList.remove('selected'));
         opt.classList.add('selected');
         valueEl.textContent = opt.textContent;
       }
     },
     getValue() {
-      const sel = menu.querySelector('.dropdown-option.selected');
+      const sel = getSelectedOpt();
       return sel ? sel.dataset.value : null;
     },
   };
@@ -912,12 +986,8 @@ function initDropdown(dropdownEl, onChange) {
 
 function closeAllDropdowns() {
   document.querySelectorAll('.dropdown.open').forEach(d => d.classList.remove('open'));
+  document.querySelectorAll('.dropdown-overlay.open').forEach(o => o.classList.remove('open'));
 }
-
-// Global click to close
-document.addEventListener('click', () => {
-  closeAllDropdowns();
-});
 
 // ============ Dropdown: Time Signature ============
 const timeSigDropdown = initDropdown(dropdownTimeSig, (val) => {
