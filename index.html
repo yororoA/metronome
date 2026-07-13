@@ -3,6 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="一个精致的在线节拍器，支持 20-240 BPM、多种拍号和细分、Tap Tempo 打拍测速、深色/浅色主题。A polished online metronome with BPM control, time signatures, subdivisions, tap tempo, and dark/light themes.">
+<meta name="keywords" content="节拍器,metronome,在线节拍器,节拍,音乐,练习,BPM,tap tempo,拍号,节奏,online metronome,beat keeper,music practice,rhythm">
 <link rel="icon" type="image/png" href="favicon.png">
 <title>Metronome — Premium Beat Keeper</title>
 <style>
@@ -118,6 +120,30 @@
     transform: scale(1.05);
   }
   .theme-toggle:active { transform: scale(0.95); }
+
+  /* ========== Language Toggle ========== */
+  .lang-toggle {
+    position: fixed; top: 24px; right: 76px; z-index: 100;
+    width: 44px; height: 44px;
+    border-radius: 14px;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    backdrop-filter: blur(var(--glass-blur));
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    transition: all 0.3s cubic-bezier(0.16,1,0.3,1);
+  }
+  .lang-toggle:hover {
+    background: var(--btn-hover-bg);
+    color: var(--text-primary);
+    transform: scale(1.05);
+  }
+  .lang-toggle:active { transform: scale(0.95); }
 
   /* ========== Glass Card ========== */
   .glass-card {
@@ -469,8 +495,13 @@
 <div class="bg-ambient"></div>
 
 <!-- Theme Toggle -->
-<button class="theme-toggle" id="themeToggle" aria-label="切换主题" title="切换明暗主题">
+<button class="theme-toggle" id="themeToggle" aria-label="切换主题" title="切换明暗主题" data-i18n-title="themeTitle" data-i18n-aria="themeLabel">
   <span id="themeIcon">&#9789;</span>
+</button>
+
+<!-- Language Toggle -->
+<button class="lang-toggle" id="langToggle" aria-label="切换语言" title="Switch language" data-i18n-aria="langLabel">
+  <span id="langLabel">EN</span>
 </button>
 
 <div class="app">
@@ -504,20 +535,20 @@
     <div class="controls">
       <!-- BPM +/- and Play -->
       <div class="bpm-controls">
-        <button class="btn" id="btnMinus" aria-label="减速">&minus;</button>
-        <button class="btn btn--play" id="btnPlay" aria-label="开始 / 停止">
+        <button class="btn" id="btnMinus" aria-label="减速" data-i18n-aria="btnMinus">&minus;</button>
+        <button class="btn btn--play" id="btnPlay" aria-label="开始 / 停止" data-i18n-aria="btnPlay">
           <span id="playIcon">&#9654;</span>
         </button>
-        <button class="btn" id="btnPlus" aria-label="加速">+</button>
+        <button class="btn" id="btnPlus" aria-label="加速" data-i18n-aria="btnPlus">+</button>
         <div class="slider-group">
-          <input type="range" id="bpmSlider" min="20" max="240" value="120" step="1" aria-label="BPM 滑块">
+          <input type="range" id="bpmSlider" min="20" max="240" value="120" step="1" aria-label="BPM 滑块" data-i18n-aria="bpmSlider">
         </div>
       </div>
 
       <!-- Tap Tempo -->
       <div class="tap-section">
-        <button class="btn btn--tap" id="btnTap" aria-label="打拍子测速">
-          <span>&#9679;</span> Tap Tempo
+        <button class="btn btn--tap" id="btnTap" aria-label="打拍子测速" data-i18n-aria="btnTap">
+          <span>&#9679;</span> <span data-i18n="tapTempo">Tap Tempo</span>
         </button>
         <span class="tap-count" id="tapCount"></span>
       </div>
@@ -525,34 +556,34 @@
       <!-- Settings -->
       <div class="settings-row">
         <div class="setting-group">
-          <label class="setting-label">拍号</label>
+          <label class="setting-label" data-i18n="timeSig">拍号</label>
           <div class="dropdown" id="dropdownTimeSig">
             <button class="dropdown-trigger" type="button">
               <span class="dropdown-value">4/4</span>
               <svg class="dropdown-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
             </button>
             <div class="dropdown-menu">
-              <div class="dropdown-option selected" data-value="4">4/4</div>
-              <div class="dropdown-option" data-value="2">2/4</div>
-              <div class="dropdown-option" data-value="3">3/4</div>
-              <div class="dropdown-option" data-value="5">5/4</div>
-              <div class="dropdown-option" data-value="6">6/8</div>
-              <div class="dropdown-option" data-value="7">7/8</div>
+              <div class="dropdown-option selected" data-value="4" data-i18n="ts4">4/4</div>
+              <div class="dropdown-option" data-value="2" data-i18n="ts2">2/4</div>
+              <div class="dropdown-option" data-value="3" data-i18n="ts3">3/4</div>
+              <div class="dropdown-option" data-value="5" data-i18n="ts5">5/4</div>
+              <div class="dropdown-option" data-value="6" data-i18n="ts6">6/8</div>
+              <div class="dropdown-option" data-value="7" data-i18n="ts7">7/8</div>
             </div>
           </div>
         </div>
         <div class="setting-group">
-          <label class="setting-label">细分</label>
+          <label class="setting-label" data-i18n="subdivision">细分</label>
           <div class="dropdown" id="dropdownSubdiv">
             <button class="dropdown-trigger" type="button">
               <span class="dropdown-value">四分音符</span>
               <svg class="dropdown-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
             </button>
             <div class="dropdown-menu">
-              <div class="dropdown-option selected" data-value="1">四分音符</div>
-              <div class="dropdown-option" data-value="2">八分音符</div>
-              <div class="dropdown-option" data-value="3">三连音</div>
-              <div class="dropdown-option" data-value="4">十六分音符</div>
+              <div class="dropdown-option selected" data-value="1" data-i18n="quarter">四分音符</div>
+              <div class="dropdown-option" data-value="2" data-i18n="eighth">八分音符</div>
+              <div class="dropdown-option" data-value="3" data-i18n="triplet">三连音</div>
+              <div class="dropdown-option" data-value="4" data-i18n="sixteenth">十六分音符</div>
             </div>
           </div>
         </div>
@@ -561,7 +592,7 @@
       <!-- Volume -->
       <div class="volume-group">
         <span class="volume-icon">&#9835;</span>
-        <input type="range" id="volumeSlider" min="0" max="100" value="70" step="1" aria-label="音量" style="flex:1;">
+        <input type="range" id="volumeSlider" min="0" max="100" value="70" step="1" aria-label="音量" data-i18n-aria="volume" style="flex:1;">
       </div>
     </div>
   </div>
@@ -588,7 +619,110 @@ const faceSvg = document.getElementById('faceSvg');
 const themeToggle = document.getElementById('themeToggle');
 const themeIcon = document.getElementById('themeIcon');
 
-// ============ State ============
+const langToggle = document.getElementById('langToggle');
+const langLabel = document.getElementById('langLabel');
+
+// ============ i18n ============
+const i18n = {
+  zh: {
+    title: 'Metronome — Premium Beat Keeper',
+    themeTitle: '切换明暗主题',
+    themeLabel: '切换主题',
+    langLabel: '切换语言',
+    btnMinus: '减速',
+    btnPlay: '开始 / 停止',
+    btnPlus: '加速',
+    bpmSlider: 'BPM 滑块',
+    btnTap: '打拍子测速',
+    tapTempo: 'Tap Tempo',
+    timeSig: '拍号',
+    subdivision: '细分',
+    ts2: '2/4', ts3: '3/4', ts4: '4/4',
+    ts5: '5/4', ts6: '6/8', ts7: '7/8',
+    quarter: '四分音符',
+    eighth: '八分音符',
+    triplet: '三连音',
+    sixteenth: '十六分音符',
+    volume: '音量',
+    consoleReady: '就绪',
+    consoleHelp: '— 开始/停止  方向键 — 调节 BPM  点击 — Tap Tempo',
+  },
+  en: {
+    title: 'Metronome — Premium Beat Keeper',
+    themeTitle: 'Toggle light/dark theme',
+    themeLabel: 'Toggle theme',
+    langLabel: 'Switch language',
+    btnMinus: 'Slow down',
+    btnPlay: 'Start / Stop',
+    btnPlus: 'Speed up',
+    bpmSlider: 'BPM slider',
+    btnTap: 'Tap to set tempo',
+    tapTempo: 'Tap Tempo',
+    timeSig: 'Time Sig',
+    subdivision: 'Subdivision',
+    ts2: '2/4', ts3: '3/4', ts4: '4/4',
+    ts5: '5/4', ts6: '6/8', ts7: '7/8',
+    quarter: 'Quarter',
+    eighth: 'Eighth',
+    triplet: 'Triplet',
+    sixteenth: 'Sixteenth',
+    volume: 'Volume',
+    consoleReady: 'Ready',
+    consoleHelp: '— Play/Stop  Arrow Keys — BPM  Click — Tap Tempo',
+  },
+};
+
+let currentLang = localStorage.getItem('metronome-lang') || 'zh';
+
+function applyLanguage(lang) {
+  currentLang = lang;
+  const t = i18n[lang];
+  document.documentElement.lang = lang === 'zh' ? 'zh-CN' : 'en';
+  document.title = t.title;
+  langLabel.textContent = lang === 'zh' ? 'EN' : '中';
+
+  // data-i18n text content
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.dataset.i18n;
+    if (t[key]) el.textContent = t[key];
+  });
+
+  // data-i18n-aria
+  document.querySelectorAll('[data-i18n-aria]').forEach(el => {
+    const key = el.dataset.i18nAria;
+    if (t[key]) el.setAttribute('aria-label', t[key]);
+  });
+
+  // data-i18n-title
+  document.querySelectorAll('[data-i18n-title]').forEach(el => {
+    const key = el.dataset.i18nTitle;
+    if (t[key]) el.setAttribute('title', t[key]);
+  });
+
+  // Update popover options and sync trigger text
+   document.querySelectorAll('.dropdown-popover').forEach(popover => {
+     popover.querySelectorAll('.dropdown-option').forEach(opt => {
+       const key = opt.dataset.i18n;
+       if (t[key]) opt.textContent = t[key];
+     });
+     // Sync trigger text
+     const dd = popover._dropdownEl;
+     if (dd) {
+       const valEl = dd.querySelector('.dropdown-value');
+       const sel = popover.querySelector('.dropdown-option.selected');
+       if (valEl && sel) valEl.textContent = sel.textContent;
+     }
+   });
+
+  localStorage.setItem('metronome-lang', lang);
+}
+
+// Apply language on load
+applyLanguage(currentLang);
+
+langToggle.addEventListener('click', () => {
+  applyLanguage(currentLang === 'zh' ? 'en' : 'zh');
+});
 let bpm = parseInt(localStorage.getItem('metronome-bpm')) || 120;
 let isPlaying = false;
 let currentBeat = 0;
@@ -880,7 +1014,10 @@ function initDropdown(dropdownEl, onChange) {
    const popover = document.createElement('div');
   popover.className = 'dropdown-popover';
   overlay.appendChild(popover);
-  document.body.appendChild(overlay);
+   document.body.appendChild(overlay);
+
+   // Store reference for language switching
+   popover._dropdownEl = dropdownEl;
 
   // Move options into popover and remove originals
    const optionEls = [...options].map(opt => {
@@ -1180,12 +1317,13 @@ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () 
   applyTheme('system');
 });
 
-console.log('%c Metronome %c&#9833; %cReady',
+const t = i18n[currentLang];
+console.log('%c Metronome %c&#9833; %c' + t.consoleReady,
   'font-size: 1.2em; font-weight: bold; color: #ff6b4a;',
   'font-size: 1.2em;',
   'color: #94949d;');
-console.log('%cSpace%c — 开始/停止  %cArrow Keys%c — 调节 BPM  %cClick%c — Tap Tempo',
-  'font-weight: bold;', '', 'font-weight: bold;', '', 'font-weight: bold;', '');
+console.log('%cSpace%c ' + t.consoleHelp,
+  'font-weight: bold;', '');
 </script>
 </body>
 </html>
