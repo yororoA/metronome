@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/png" href="favicon.png">
 <title>Metronome — Premium Beat Keeper</title>
 <style>
   /* ========== CSS Custom Properties (Theme) ========== */
@@ -151,11 +152,7 @@
 
   /* ========== Needle ========== */
   .needle-group {
-    transform-origin: 140px 140px;
-    transition: transform 0.08s cubic-bezier(0.22, 1, 0.36, 1);
-  }
-  .needle-group.active {
-    transition: transform 0.06s cubic-bezier(0.22, 1, 0.36, 1);
+    /* rotation axis is handled via SVG transform attribute in JS */
   }
   .needle-body {
     fill: var(--needle-color);
@@ -379,7 +376,6 @@
 
   /* ========== Reduced Motion ========== */
   @media (prefers-reduced-motion: reduce) {
-    .needle-group, .needle-group.active { transition: none !important; }
     .beat-dot { transition: none !important; }
   }
 
