@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Metronome — Premium Beat Keeper</title>
+<style>
+  /* ========== CSS Custom Properties (Theme) ========== */
+  :root {
+    color-scheme: dark;
+    --bg-primary: #0f0f11;
+    --bg-secondary: #1a1a1f;
+    --bg-card: rgba(255,255,255,0.03);
+    --border-subtle: rgba(255,255,255,0.06);
+    --border-medium: rgba(255,255,255,0.10);
+    --text-primary: #f0f0f2;
+    --text-secondary: #94949d;
+    --text-tertiary: #5e5e68;
+    --accent: #ff6b4a;
+    --accent-glow: rgba(255,107,74,0.25);
+    --success: #34d399;
+    --shadow-lg: 0 20px 60px rgba(0,0,0,0.5);
+    --glass-bg: rgba(255,255,255,0.04);
+    --glass-border: rgba(255,255,255,0.08);
+    --glass-blur: 40px;
+    --needle-color: #ff6b4a;
+    --tick-active: #ff6b4a;
+    --tick-inactive: rgba(255,255,255,0.15);
+    --beat-dot-active: #ff6b4a;
+    --beat-dot-inactive: rgba(255,255,255,0.2);
+    --slider-track: rgba(255,255,255,0.1);
+    --slider-thumb: #ff6b4a;
+    --btn-bg: rgba(255,255,255,0.06);
+    --btn-hover-bg: rgba(255,255,255,0.1);
+  }
+
+  [data-theme="light"] {
+    color-scheme: light;
+    --bg-primary: #f5f5f7;
+    --bg-secondary: #ffffff;
+    --bg-card: rgba(0,0,0,0.02);
+    --border-subtle: rgba(0,0,0,0.06);
+    --border-medium: rgba(0,0,0,0.10);
+    --text-primary: #1a1a1f;
+    --text-secondary: #6b6b75;
+    --text-tertiary: #b0b0ba;
+    --accent: #e85d3f;
+    --accent-glow: rgba(232,93,63,0.2);
+    --shadow-lg: 0 20px 60px rgba(0,0,0,0.1);
+    --glass-bg: rgba(0,0,0,0.02);
+    --glass-border: rgba(0,0,0,0.06);
+    --glass-blur: 40px;
+    --needle-color: #e85d3f;
+    --tick-active: #e85d3f;
+    --tick-inactive: rgba(0,0,0,0.1);
+    --beat-dot-active: #e85d3f;
+    --beat-dot-inactive: rgba(0,0,0,0.12);
+    --slider-track: rgba(0,0,0,0.08);
+    --slider-thumb: #e85d3f;
+    --btn-bg: rgba(0,0,0,0.04);
+    --btn-hover-bg: rgba(0,0,0,0.08);
+  }
+
+  /* ========== Reset & Base ========== */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'SF Pro Display', 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    min-height: 100dvh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow-x: hidden;
+    transition: background 0.4s ease, color 0.4s ease;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* ========== Background Ambient ========== */
+  .bg-ambient {
+    position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    background:
+      radial-gradient(ellipse 80% 60% at 50% 30%, var(--accent-glow) 0%, transparent 70%),
+      radial-gradient(ellipse 60% 50% at 20% 80%, rgba(100,140,255,0.06) 0%, transparent 60%);
+    opacity: 0.6;
+    transition: background 0.4s ease;
+  }
+
+  /* ========== Main Container ========== */
+  .app {
+    position: relative; z-index: 1;
+    display: flex; flex-direction: column; align-items: center; gap: 32px;
+    padding: 24px;
+    max-width: 520px; width: 100%;
+  }
+
+  /* ========== Theme Toggle ========== */
+  .theme-toggle {
+    position: fixed; top: 24px; right: 24px; z-index: 100;
+    width: 44px; height: 44px;
+    border-radius: 14px;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    backdrop-filter: blur(var(--glass-blur));
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text-secondary);
+    font-size: 1.2rem;
+    transition: all 0.3s cubic-bezier(0.16,1,0.3,1);
+  }
+  .theme-toggle:hover {
+    background: var(--btn-hover-bg);
+    color: var(--text-primary);
+    transform: scale(1.05);
+  }
+  .theme-toggle:active { transform: scale(0.95); }
+
+  /* ========== Glass Card ========== */
+  .glass-card {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 28px;
+    backdrop-filter: blur(var(--glass-blur));
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+    padding: 32px;
+    width: 100%;
+    transition: background 0.4s ease, border 0.4s ease;
+  }
+
+  /* ========== Metronome Face ========== */
+  .metronome-face {
+    position: relative;
+    width: 280px; height: 280px;
+    margin: 0 auto 8px;
+  }
+
+  .face-svg {
+    width: 100%; height: 100%;
+  }
+
+  /* Tick marks drawn as SVG lines */
+  .face-center-circle {
+    fill: var(--bg-secondary);
+    stroke: var(--border-medium);
+    stroke-width: 1.5;
+    transition: fill 0.4s, stroke 0.4s;
+  }
+
+  /* ========== Needle ========== */
+  .needle-group {
+    transform-origin: 140px 140px;
+    transition: transform 0.08s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .needle-group.active {
+    transition: transform 0.06s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .needle-body {
+    fill: var(--needle-color);
+  }
+  .needle-pivot {
+    fill: var(--needle-color);
+    filter: drop-shadow(0 0 6px var(--accent-glow));
+  }
+
+  /* ========== BPM Display ========== */
+  .bpm-display {
+    text-align: center;
+    margin-bottom: 4px;
+  }
+  .bpm-value {
+    font-size: 5rem;
+    font-weight: 200;
+    letter-spacing: -0.04em;
+    line-height: 1;
+    color: var(--text-primary);
+    transition: color 0.4s ease;
+    font-variant-numeric: tabular-nums;
+  }
+  .bpm-label {
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--text-tertiary);
+    margin-top: 4px;
+    transition: color 0.4s;
+  }
+
+  /* ========== Beat Indicators ========== */
+  .beat-indicators {
+    display: flex; justify-content: center; gap: 10px;
+    margin-bottom: 24px;
+  }
+  .beat-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--beat-dot-inactive);
+    transition: all 0.15s ease;
+  }
+  .beat-dot.active {
+    background: var(--beat-dot-active);
+    box-shadow: 0 0 12px var(--accent-glow);
+    transform: scale(1.5);
+  }
+  .beat-dot.accent {
+    width: 12px; height: 12px;
+  }
+
+  /* ========== Controls Layout ========== */
+  .controls {
+    display: flex; flex-direction: column; gap: 20px;
+  }
+
+  /* ========== BPM Controls ========== */
+  .bpm-controls {
+    display: flex; align-items: center; gap: 12px;
+  }
+  .btn {
+    width: 44px; height: 44px;
+    border-radius: 14px;
+    border: 1px solid var(--border-medium);
+    background: var(--btn-bg);
+    color: var(--text-primary);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem;
+    transition: all 0.25s cubic-bezier(0.16,1,0.3,1);
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    flex-shrink: 0;
+  }
+  .btn:hover {
+    background: var(--btn-hover-bg);
+    border-color: var(--border-medium);
+    transform: translateY(-1px);
+  }
+  .btn:active {
+    transform: scale(0.95);
+  }
+  .btn--play {
+    width: 56px; height: 56px;
+    border-radius: 18px;
+    background: var(--accent);
+    border: none;
+    color: #fff;
+    font-size: 1.3rem;
+    box-shadow: 0 8px 24px var(--accent-glow);
+  }
+  .btn--play:hover {
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 12px 32px var(--accent-glow);
+  }
+  .btn--play:active {
+    transform: scale(0.95);
+  }
+  .btn--play.playing {
+    background: var(--success);
+    box-shadow: 0 8px 24px rgba(52,211,153,0.3);
+  }
+
+  /* ========== Slider ========== */
+  .slider-group {
+    flex: 1; min-width: 0;
+  }
+  input[type="range"] {
+    -webkit-appearance: none; appearance: none;
+    width: 100%; height: 6px;
+    border-radius: 3px;
+    background: var(--slider-track);
+    outline: none;
+    cursor: pointer;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    background: var(--slider-thumb);
+    border: 3px solid var(--bg-primary);
+    cursor: pointer;
+    box-shadow: 0 0 16px var(--accent-glow);
+    transition: transform 0.2s ease;
+  }
+  input[type="range"]::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
+  }
+
+  /* ========== Tap Tempo ========== */
+  .tap-section {
+    display: flex; align-items: center; gap: 12px;
+  }
+  .btn--tap {
+    flex: 1; height: 48px; border-radius: 16px;
+    font-size: 0.9rem; font-weight: 600;
+    letter-spacing: 0.05em; text-transform: uppercase;
+    display: flex; align-items: center; justify-content: center;
+    gap: 8px;
+  }
+  .tap-count {
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+    min-width: 20px;
+    text-align: center;
+    transition: color 0.4s;
+  }
+
+  /* ========== Settings Row ========== */
+  .settings-row {
+    display: flex; gap: 12px;
+  }
+  .setting-group {
+    flex: 1;
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .setting-label {
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-tertiary);
+    transition: color 0.4s;
+  }
+  .setting-select {
+    height: 44px;
+    border-radius: 14px;
+    border: 1px solid var(--border-medium);
+    background: var(--btn-bg);
+    color: var(--text-primary);
+    padding: 0 12px;
+    font-size: 0.9rem;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.16,1,0.3,1);
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394949d' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 32px;
+  }
+  .setting-select:hover {
+    background-color: var(--btn-hover-bg);
+  }
+  .setting-select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+  }
+  .setting-select option {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+  }
+
+  /* ========== Volume ========== */
+  .volume-group {
+    display: flex; align-items: center; gap: 10px;
+  }
+  .volume-icon {
+    color: var(--text-tertiary);
+    font-size: 1rem;
+    flex-shrink: 0;
+    transition: color 0.4s;
+  }
+
+  /* ========== Responsive ========== */
+  @media (max-width: 480px) {
+    .app { padding: 16px; gap: 20px; }
+    .glass-card { padding: 24px 20px; border-radius: 24px; }
+    .metronome-face { width: 220px; height: 220px; }
+    .bpm-value { font-size: 3.5rem; }
+    .btn--play { width: 48px; height: 48px; border-radius: 16px; }
+    .btn { width: 38px; height: 38px; border-radius: 12px; }
+    .btn--tap { height: 42px; border-radius: 14px; font-size: 0.8rem; }
+    .settings-row { flex-direction: column; }
+    .setting-select { height: 40px; border-radius: 12px; }
+  }
+
+  /* ========== Reduced Motion ========== */
+  @media (prefers-reduced-motion: reduce) {
+    .needle-group, .needle-group.active { transition: none !important; }
+    .beat-dot { transition: none !important; }
+  }
+
+  /* ========== Select Light Theme Fix ========== */
+  [data-theme="light"] .setting-select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b6b75' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  }
+</style>
+</head>
+<body>
+
+<div class="bg-ambient"></div>
+
+<!-- Theme Toggle -->
+<button class="theme-toggle" id="themeToggle" aria-label="切换主题" title="切换明暗主题">
+  <span id="themeIcon">&#9789;</span>
+</button>
+
+<div class="app">
+  <!-- Metronome Face -->
+  <div class="glass-card" style="padding: 24px 32px 16px;">
+    <div class="metronome-face">
+      <svg class="face-svg" viewBox="0 0 280 280" id="faceSvg">
+        <!-- Tick marks generated by JS -->
+        <!-- Center circle -->
+        <circle cx="140" cy="140" r="8" class="face-center-circle"/>
+        <!-- Needle -->
+        <g class="needle-group" id="needleGroup">
+          <line x1="140" y1="140" x2="140" y2="52" stroke="var(--needle-color)" stroke-width="3" stroke-linecap="round" class="needle-body"/>
+          <circle cx="140" cy="140" r="10" class="needle-pivot"/>
+        </g>
+      </svg>
+    </div>
+
+    <!-- BPM Display -->
+    <div class="bpm-display">
+      <div class="bpm-value" id="bpmValue">120</div>
+      <div class="bpm-label">BPM</div>
+    </div>
+
+    <!-- Beat Indicators -->
+    <div class="beat-indicators" id="beatIndicators"></div>
+  </div>
+
+  <!-- Controls -->
+  <div class="glass-card" style="padding: 24px 28px;">
+    <div class="controls">
+      <!-- BPM +/- and Play -->
+      <div class="bpm-controls">
+        <button class="btn" id="btnMinus" aria-label="减速">&minus;</button>
+        <button class="btn btn--play" id="btnPlay" aria-label="开始 / 停止">
+          <span id="playIcon">&#9654;</span>
+        </button>
+        <button class="btn" id="btnPlus" aria-label="加速">+</button>
+        <div class="slider-group">
+          <input type="range" id="bpmSlider" min="20" max="240" value="120" step="1" aria-label="BPM 滑块">
+        </div>
+      </div>
+
+      <!-- Tap Tempo -->
+      <div class="tap-section">
+        <button class="btn btn--tap" id="btnTap" aria-label="打拍子测速">
+          <span>&#9679;</span> Tap Tempo
+        </button>
+        <span class="tap-count" id="tapCount"></span>
+      </div>
+
+      <!-- Settings -->
+      <div class="settings-row">
+        <div class="setting-group">
+          <label class="setting-label" for="timeSigBeats">拍号</label>
+          <select class="setting-select" id="timeSigBeats">
+            <option value="2">2/4</option>
+            <option value="3">3/4</option>
+            <option value="4" selected>4/4</option>
+            <option value="5">5/4</option>
+            <option value="6">6/8</option>
+            <option value="7">7/8</option>
+          </select>
+        </div>
+        <div class="setting-group">
+          <label class="setting-label" for="subdivision">细分</label>
+          <select class="setting-select" id="subdivision">
+            <option value="1" selected>四分音符</option>
+            <option value="2">八分音符</option>
+            <option value="3">三连音</option>
+            <option value="4">十六分音符</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Volume -->
+      <div class="volume-group">
+        <span class="volume-icon">&#9835;</span>
+        <input type="range" id="volumeSlider" min="0" max="100" value="70" step="1" aria-label="音量" style="flex:1;">
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+// ============ DOM Elements ============
+const bpmValue = document.getElementById('bpmValue');
+const bpmSlider = document.getElementById('bpmSlider');
+const btnPlay = document.getElementById('btnPlay');
+const playIcon = document.getElementById('playIcon');
+const btnMinus = document.getElementById('btnMinus');
+const btnPlus = document.getElementById('btnPlus');
+const btnTap = document.getElementById('btnTap');
+const tapCount = document.getElementById('tapCount');
+const beatIndicators = document.getElementById('beatIndicators');
+const timeSigSelect = document.getElementById('timeSigBeats');
+const subdivisionSelect = document.getElementById('subdivision');
+const volumeSlider = document.getElementById('volumeSlider');
+const needleGroup = document.getElementById('needleGroup');
+const faceSvg = document.getElementById('faceSvg');
+const themeToggle = document.getElementById('themeToggle');
+const themeIcon = document.getElementById('themeIcon');
+
+// ============ State ============
+let bpm = 120;
+let isPlaying = false;
+let currentBeat = 0;
+let beatsPerMeasure = 4;
+let subdivision = 1;
+let volume = 0.7;
+
+// Tap tempo state
+let tapTimes = [];
+const TAP_WINDOW = 2000; // ms window for tap averaging
+const MAX_TAPS = 8;
+
+// Audio scheduling
+let nextNoteTime = 0;
+let scheduleAheadTime = 0.1;
+let lookAheadInterval = null;
+let audioCtx = null;
+
+// Needle animation
+let needleAngle = 0;
+let targetNeedleAngle = 0;
+let needleAnimId = null;
+
+// ============ Theme ============
+function getSystemTheme() {
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+}
+
+function applyTheme(theme) {
+  if (theme === 'system') {
+    theme = getSystemTheme();
+  }
+  document.documentElement.setAttribute('data-theme', theme);
+  themeIcon.innerHTML = theme === 'dark' ? '&#9789;' : '&#9728;';
+  localStorage.setItem('metronome-theme', theme);
+}
+
+let currentTheme = localStorage.getItem('metronome-theme') || 'dark';
+applyTheme(currentTheme);
+
+themeToggle.addEventListener('click', () => {
+  currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
+  applyTheme(currentTheme);
+});
+
+// ============ Audio Engine ============
+function initAudio() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  if (audioCtx.state === 'suspended') {
+    audioCtx.resume();
+  }
+}
+
+function createClickSound(scheduleTime, frequency, duration, isAccent) {
+  if (!audioCtx) return;
+
+  // Main body: short sine burst — scheduled at precise future time
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(frequency, scheduleTime);
+
+  const vol = isAccent ? volume : volume * 0.65;
+  gain.gain.setValueAtTime(vol, scheduleTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, scheduleTime + duration);
+
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+
+  osc.start(scheduleTime);
+  osc.stop(scheduleTime + duration);
+
+  // Click attack: high-frequency noise burst
+  if (duration > 0.02) {
+    const noiseOsc = audioCtx.createOscillator();
+    const noiseGain = audioCtx.createGain();
+    noiseOsc.type = 'square';
+    noiseOsc.frequency.setValueAtTime(isAccent ? 1800 : 1400, scheduleTime);
+    noiseGain.gain.setValueAtTime(vol * 0.15, scheduleTime);
+    noiseGain.gain.exponentialRampToValueAtTime(0.001, scheduleTime + 0.015);
+    noiseOsc.connect(noiseGain);
+    noiseGain.connect(audioCtx.destination);
+    noiseOsc.start(scheduleTime);
+    noiseOsc.stop(scheduleTime + 0.015);
+  }
+}
+
+function playClick(scheduleTime, beatIndex) {
+  if (!audioCtx) return;
+  const isAccent = (beatIndex % beatsPerMeasure) === 0;
+  const freq = isAccent ? 880 : 660;
+  const dur = isAccent ? 0.08 : 0.06;
+  createClickSound(scheduleTime, freq, dur, isAccent);
+}
+
+// ============ Scheduler ============
+function scheduleNote(time) {
+  playClick(time, currentBeat);
+  updateVisualBeat(currentBeat);
+
+  // Advance to next beat
+  const secondsPerBeat = 60.0 / bpm / subdivision;
+  nextNoteTime += secondsPerBeat;
+  currentBeat++;
+}
+
+function scheduler() {
+  while (nextNoteTime < audioCtx.currentTime + scheduleAheadTime) {
+    scheduleNote(nextNoteTime);
+  }
+}
+
+function startScheduler() {
+  if (!audioCtx) initAudio();
+  initAudio();
+
+  if (audioCtx.state === 'suspended') {
+    audioCtx.resume();
+  }
+
+  nextNoteTime = audioCtx.currentTime + 0.05;
+  currentBeat = 0;
+
+  // Clear any existing interval
+  if (lookAheadInterval) clearInterval(lookAheadInterval);
+
+  lookAheadInterval = setInterval(() => {
+    scheduler();
+  }, 25);
+
+  startNeedleAnimation();
+}
+
+function stopScheduler() {
+  if (lookAheadInterval) {
+    clearInterval(lookAheadInterval);
+    lookAheadInterval = null;
+  }
+  stopNeedleAnimation();
+}
+
+// ============ Visual Beat ============
+function updateBeatDots(beatIndex) {
+  const dots = beatIndicators.querySelectorAll('.beat-dot');
+  const actualBeat = beatIndex % beatsPerMeasure;
+  dots.forEach((dot, i) => {
+    dot.classList.toggle('active', i === actualBeat);
+  });
+}
+
+function updateVisualBeat(beatIndex) {
+  updateBeatDots(beatIndex);
+
+  // Swing needle: alternate left/right
+  const isAccent = (beatIndex % beatsPerMeasure) === 0;
+  const direction = (beatIndex % 2 === 0) ? -1 : 1;
+  targetNeedleAngle = direction * (isAccent ? 28 : 22);
+}
+
+// ============ Needle Animation ============
+function animateNeedle() {
+  const diff = targetNeedleAngle - needleAngle;
+  needleAngle += diff * 0.35;
+
+  // Return to center when stopped
+  if (!isPlaying && Math.abs(needleAngle) < 0.05) {
+    needleAngle = 0;
+  }
+
+  needleGroup.setAttribute('transform', `rotate(${needleAngle}, 140, 140)`);
+
+  if (!isPlaying && needleAngle === 0) {
+    needleAnimId = null;
+    return;
+  }
+
+  needleAnimId = requestAnimationFrame(animateNeedle);
+}
+
+function startNeedleAnimation() {
+  if (!needleAnimId) {
+    needleAnimId = requestAnimationFrame(animateNeedle);
+  }
+}
+
+function stopNeedleAnimation() {
+  targetNeedleAngle = 0;
+  if (!needleAnimId) {
+    needleAnimId = requestAnimationFrame(animateNeedle);
+  }
+}
+
+// ============ Play / Stop ============
+function togglePlay() {
+  if (isPlaying) {
+    stop();
+  } else {
+    play();
+  }
+}
+
+function play() {
+  initAudio();
+  isPlaying = true;
+  btnPlay.classList.add('playing');
+  playIcon.innerHTML = '&#9646;&#9646;';
+  startScheduler();
+}
+
+function stop() {
+  isPlaying = false;
+  btnPlay.classList.remove('playing');
+  playIcon.innerHTML = '&#9654;';
+  stopScheduler();
+  currentBeat = 0;
+  updateBeatDots(-1); // Clear all dots
+}
+
+// ============ BPM Control ============
+function setBPM(value) {
+  bpm = Math.max(20, Math.min(240, value));
+  bpmSlider.value = bpm;
+  bpmValue.textContent = bpm;
+
+  if (isPlaying) {
+    // Reset timing
+    stopScheduler();
+    startScheduler();
+  }
+}
+
+bpmSlider.addEventListener('input', () => {
+  setBPM(parseInt(bpmSlider.value));
+});
+
+btnPlay.addEventListener('click', togglePlay);
+btnMinus.addEventListener('click', () => setBPM(bpm - 1));
+btnPlus.addEventListener('click', () => setBPM(bpm + 1));
+
+// Add keyboard shortcuts
+document.addEventListener('keydown', (e) => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+  switch (e.code) {
+    case 'Space':
+      e.preventDefault();
+      if (document.activeElement === btnPlay) return; // avoid double-fire with button click
+      togglePlay();
+      break;
+    case 'ArrowUp':
+      e.preventDefault();
+      setBPM(bpm + 1);
+      break;
+    case 'ArrowDown':
+      e.preventDefault();
+      setBPM(bpm - 1);
+      break;
+    case 'ArrowRight':
+      e.preventDefault();
+      setBPM(bpm + 5);
+      break;
+    case 'ArrowLeft':
+      e.preventDefault();
+      setBPM(bpm - 5);
+      break;
+  }
+});
+
+// ============ Tap Tempo ============
+btnTap.addEventListener('click', () => {
+  const now = performance.now();
+
+  // Remove taps outside the window
+  tapTimes = tapTimes.filter(t => now - t < TAP_WINDOW);
+
+  // Add current tap
+  tapTimes.push(now);
+
+  if (tapTimes.length > MAX_TAPS) {
+    tapTimes.shift();
+  }
+
+  // Calculate average interval
+  if (tapTimes.length >= 2) {
+    let totalInterval = 0;
+    for (let i = 1; i < tapTimes.length; i++) {
+      totalInterval += tapTimes[i] - tapTimes[i - 1];
+    }
+    const avgInterval = totalInterval / (tapTimes.length - 1);
+    const detectedBPM = Math.round(60000 / avgInterval);
+    setBPM(detectedBPM);
+  }
+
+  // Update tap count display
+  tapCount.textContent = tapTimes.length >= 2 ? `${tapTimes.length}` : '';
+
+  // Reset tap count after inactivity
+  clearTimeout(btnTap._tapTimeout);
+  btnTap._tapTimeout = setTimeout(() => {
+    tapTimes = [];
+    tapCount.textContent = '';
+  }, TAP_WINDOW);
+});
+
+// ============ Time Signature ============
+function updateTimeSignature() {
+  const value = timeSigSelect.value;
+  // Preset mappings: value -> beats per measure
+  beatsPerMeasure = parseInt(value);
+  currentBeat = 0;
+  buildBeatDots();
+  updateBeatDots(-1);
+
+  if (isPlaying) {
+    stopScheduler();
+    startScheduler();
+  }
+}
+
+timeSigSelect.addEventListener('change', updateTimeSignature);
+
+// ============ Subdivision ============
+subdivisionSelect.addEventListener('change', () => {
+  subdivision = parseInt(subdivisionSelect.value);
+  if (isPlaying) {
+    stopScheduler();
+    startScheduler();
+  }
+});
+
+// ============ Volume ============
+volumeSlider.addEventListener('input', () => {
+  volume = parseInt(volumeSlider.value) / 100;
+});
+
+// ============ Beat Dots ============
+function buildBeatDots() {
+  beatIndicators.innerHTML = '';
+  for (let i = 0; i < beatsPerMeasure; i++) {
+    const dot = document.createElement('div');
+    dot.className = 'beat-dot' + (i === 0 ? ' accent' : '');
+    beatIndicators.appendChild(dot);
+  }
+}
+
+// ============ Tick Marks (SVG) ============
+function buildTickMarks() {
+  const centerX = 140, centerY = 140;
+  const radius = 120;
+  const totalTicks = 24; // 2 ticks per beat for a nice look
+
+  // Remove existing ticks
+  faceSvg.querySelectorAll('.tick-mark').forEach(t => t.remove());
+
+  for (let i = 0; i < totalTicks; i++) {
+    const angle = (i / totalTicks) * 360 - 90;
+    const rad = angle * Math.PI / 180;
+    const isMajor = i % 3 === 0;
+    const innerR = isMajor ? radius - 18 : radius - 10;
+    const outerR = radius;
+
+    const x1 = centerX + innerR * Math.cos(rad);
+    const y1 = centerY + innerR * Math.sin(rad);
+    const x2 = centerX + outerR * Math.cos(rad);
+    const y2 = centerY + outerR * Math.sin(rad);
+
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('x1', x1);
+    line.setAttribute('y1', y1);
+    line.setAttribute('x2', x2);
+    line.setAttribute('y2', y2);
+    line.setAttribute('stroke', isMajor ? 'var(--tick-inactive)' : 'var(--tick-inactive)');
+    line.setAttribute('stroke-width', isMajor ? '2' : '1');
+    line.setAttribute('stroke-linecap', 'round');
+    line.setAttribute('class', 'tick-mark');
+    line.style.opacity = isMajor ? '0.6' : '0.3';
+
+    // Insert before needle group
+    faceSvg.insertBefore(line, needleGroup);
+  }
+}
+
+// ============ Init ============
+function init() {
+  buildTickMarks();
+  buildBeatDots();
+  updateBeatDots(-1);
+
+  // Handle audio context resume on user interaction
+  document.addEventListener('click', () => {
+    if (audioCtx && audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
+  }, { once: false });
+}
+
+init();
+
+// ============ System theme change listener ============
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+  if (currentTheme === 'dark' || currentTheme === 'light') {
+    // User has manually set a theme, don't auto-switch
+    return;
+  }
+  applyTheme('system');
+});
+
+console.log('%c Metronome %c&#9833; %cReady',
+  'font-size: 1.2em; font-weight: bold; color: #ff6b4a;',
+  'font-size: 1.2em;',
+  'color: #94949d;');
+console.log('%cSpace%c — 开始/停止  %cArrow Keys%c — 调节 BPM  %cClick%c — Tap Tempo',
+  'font-weight: bold;', '', 'font-weight: bold;', '', 'font-weight: bold;', '');
+</script>
+</body>
+</html>
